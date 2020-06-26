@@ -206,6 +206,113 @@ factory.Log(new TestConfigLogger());
 
 ```
 
+## Setting up HyperIoC for MVC
+
+**This is for reference and might be out-of-date** 
+
+Rather than build a NuGet package for a few lines of code, and also as the MVC framework changes a little over time, below will 
+detail how to go about configuring the _HyperIoC_ in MVC.
+
+### The HTTP lifetime manager
+
+The first place to start is to create a HTTP-based lifetime manager something like:
+
+```
+public class HttpContextLifetimeManager : LifetimeManager
+{
+    public override object Get(Type type, IFactoryLocator locator, IFactoryResolver resolver)
+    {
+        var context = HttpContext.Current;
+
+        if (context == null)
+            throw new InvalidOperationException("The HTTP context is not available.");
+
+        lock (context.Items.SyncRoot)
+        {
+            var key = "HyperIoC-" + type.FullName;
+            context.Items[key] = context.Items[key] ?? CreateInstance(type, locator, resolver);
+            return context.Items[key];
+        }
+    }
+}
+```
+
+The next step is to create a new controller factory that is constructed from the _Factory_ class:
+
+```
+public class HyperIoCControllerFactory : DefaultControllerFactory
+{
+    private readonly IFactoryResolver _resolver;
+
+    public HyperIoCControllerFactory(IFactoryResolver resolver)
+    {
+        if (resolver == null) throw new ArgumentNullException(nameof(resolver));
+
+        _resolver = resolver;
+    }
+
+    public override IController CreateController(RequestContext requestContext, string controllerName)
+    {
+        return _resolver.Get<IController>(controllerName + "Controller");
+    }
+}
+```
+
+**Note** The key in _HyperIoCControllerFactory_ class and the controller type in the _HttpContextLifetimeManager_ should match.
+
+Create an extension to the _Item_ class:
+
+```
+public static class ItemExtensions
+{
+    public static void AsPerRequest(this Item item)
+    {
+        item.SetLifetimeTo(new HttpContextLifetimeManager());
+    }
+}
+```
+
+And finally an extension to enumerate assembly with all the controllers and automatically addd them:
+
+```
+public static class FactoryBuilderExtensions
+{
+    public static void AddControllers(this IFactoryBuilder builder, Assembly assembly)
+    {
+        foreach (var type in assembly.GetTypes().Where(t => typeof(IController).IsAssignableFrom(t)))
+        {
+            builder.Add(typeof (IController), type, type.Name);
+        }
+    }
+}
+```
+
+### Putting it together
+
+In the startup of your site set:
+
+```
+var factory = FactoryBuilder
+    .Build()
+    .WithProfile<ControllerProfile>()
+    .Create();
+
+ControllerBuilder.Current.SetControllerFactory(new HyperIoCControllerFactory(factory));
+
+```
+
+And create a profile to register your controllers:
+
+```
+public class ControllerProfile : FactoryProfile
+{
+    public override void Construct(IFactoryBuilder builder)
+    {
+        builder.AddControllers(typeof(MvcApplication).Assembly);
+    }
+}
+```
+
 ## Developer Notes
 
 ### Building and Publishing
