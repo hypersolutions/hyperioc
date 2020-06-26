@@ -4,6 +4,7 @@ using HyperIoC.Lifetime;
 using HyperIoC.Tests.Support;
 using Shouldly;
 using Xunit;
+// ReSharper disable AssignNullToNotNullAttribute
 
 namespace HyperIoC.Tests
 {
@@ -21,7 +22,7 @@ namespace HyperIoC.Tests
         {
             var exception = Should.Throw<ArgumentNullException>(() => _factory.Add(null, typeof(TestClass)));
             
-            exception.Message.ShouldBe("Value cannot be null.\r\nParameter name: interfaceType");
+            exception.Message.ShouldBe("Value cannot be null. (Parameter 'interfaceType')");
         }
 
         [Fact]
@@ -29,7 +30,7 @@ namespace HyperIoC.Tests
         {
             var exception = Should.Throw<ArgumentNullException>(() => _factory.Add(typeof(ITestClass), null));
             
-            exception.Message.ShouldBe("Value cannot be null.\r\nParameter name: instanceType");
+            exception.Message.ShouldBe("Value cannot be null. (Parameter 'instanceType')");
         }
 
         [Fact]
@@ -37,7 +38,7 @@ namespace HyperIoC.Tests
         {
             var exception = Should.Throw<ArgumentException>(() => _factory.Add<TestClass, TestClass>());
             
-            exception.Message.ShouldBe("Type is not interface.\r\nParameter name: interfaceType");
+            exception.Message.ShouldBe("Type is not interface. (Parameter 'interfaceType')");
         }
 
         [Fact]
@@ -45,7 +46,7 @@ namespace HyperIoC.Tests
         {
             var exception = Should.Throw<ArgumentException>(() => _factory.Add<ITestClass, ITestClass>());
             
-            exception.Message.ShouldBe("Instance is not a concerete type.\r\nParameter name: instanceType");
+            exception.Message.ShouldBe("Instance is not a concrete type. (Parameter 'instanceType')");
         }
 
         [Fact]

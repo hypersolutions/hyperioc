@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using HyperIoC.Lifetime;
 using HyperIoC.Logging;
+// ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
 
 namespace HyperIoC
 {
@@ -60,7 +61,7 @@ namespace HyperIoC
             
             item = Locator.FindItem(interfaceType);
 
-            if (!item.InstanceTypes.ContainsKey(key))
+            if (key != null && !item.InstanceTypes.ContainsKey(key))
             {
                 item.AddType(key, instanceType);
             }
@@ -227,7 +228,7 @@ namespace HyperIoC
             if (instanceType == null) throw new ArgumentNullException(nameof(instanceType));
 
             if (instanceType.IsInterface || instanceType.IsAbstract)
-                throw new ArgumentException("Instance is not a concerete type.", nameof(instanceType));
+                throw new ArgumentException("Instance is not a concrete type.", nameof(instanceType));
         }
 
         private static bool CanAddInstanceType(Type instanceType)

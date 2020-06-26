@@ -1,8 +1,207 @@
-# HyperMap
+# HyperIoC
 
 ## Getting Started
 
-You can find this package via NuGet: [**HyperIoC**](https://www.nuget.org/packages/HyperIoC)
+You can find this packages via NuGet: 
 
+[**HyperIoC**](https://www.nuget.org/packages/HyperIoC)
 
+## Overview
 
+TODO
+  
+## The Factory Class
+
+The hub of the framework is the _Factory_ class. This contains the registration and resolution API. You need to keep an instance of the _Factory_ alive for the lifetime of your application or application domain. 
+
+Very simply, to register an a type:
+
+```
+var factory = new Factory();
+factory.Add<IAccountService, AccountService>();
+```
+
+By default, all registration is transient meaning that each and every instance returned from the _Factory_ is a new instance.
+
+To control this, the API provides two ways of configuring the _lifetime_ of a registered type. For _singletons_ there is a built-in extension:
+
+```
+var factory = new Factory();
+factory.Add<IAccountService, AccountService>().AsSingleton();
+```
+
+Or alternatively you can implement the _ILifetimeManager_ interface or (preferably) inherit from the _LifetimeManager_ class, and attach your own _lifetime_ management:
+
+```
+var factory = new Factory();
+factory.Add<IAccountService, AccountService>().SetLifetimeTo(new HttpLifetimeManager());
+```
+
+## The FactoryBuilder Class
+
+A cleaner and more configurable way to construct your containers is to use the _FactoryBuilder_ class:
+
+```
+var factory = FactoryBuilder
+    .Build()
+    .WithProfile<MainProfile>()
+    .Create();
+```
+
+Where the _MainProfile_ class is defined:
+
+```
+public class MainProfile : FactoryProfile
+{
+    public override void Construct(IFactoryBuilder builder)
+    {
+        builder.Add<IAccountService, AccountService>();
+    }
+}
+```
+
+Using the _FactoryBuilder_ class allows you to separate your deployment configuration by environment. The **.WithProfile()** accepts a 
+predicate so you can, for example read a value from your config file and load only specific profiles:
+
+```
+var config = ConfigurationManager.AppSettings["Config"];
+
+var factory = FactoryBuilder
+    .Build()
+    .WithProfile<DebugProfile>(() => config == "DEBUG")
+    .WithProfile<LiveProfile>(() => config == "LIVE")
+    .Create();
+
+public class DebugProfile : FactoryProfile
+{
+    public override void Construct(IFactoryBuilder builder)
+    {
+        builder.Add<IAccountService, DebugAccountService>();
+    }
+}
+
+public class LiveProfile : FactoryProfile
+{
+    public override void Construct(IFactoryBuilder builder)
+    {
+        builder.Add<IAccountService, AccountService>();
+    }
+}
+
+```
+
+The **Build** method on the _FactoryBuilder_ accepts a _Factory_ instance. This allows you to chain _factories_ together.
+
+## Multiple interface instances
+
+For scenarios where you have multiple instances of the same interface, the **Add** method on the _Factory_ class allows for a 
+key to be provided. In fact all types are registered with an implicit key created but you can specify your own:
+
+```
+var factory = new Factory();
+factory.Add<IAccountService, FirstAccountService>("First");
+factory.Add<IAccountService, SecondAccountService>("Second");
+```
+
+## The Factory Get
+
+Instances are resolved via the _Factory_ class **Get** method:
+
+```
+var service = factory.Get<IAccountService>();
+```
+
+You can also get a specific instance if you have specified a key during construction:
+
+```
+var service = factory.Get<IAccountService>("KEY");
+```
+
+## Self Registration
+
+To aid factory support throughout your code, the _IFactoryResolver_ interface is automatically registered. Basically it's a bad 
+idea to have references of the _IoC_ throughout your codebase. Typically the entry project will be the place where your _IoC_ is 
+referenced and built, thus allowing easy switching of the _IoC_ or to control the construction in one place.
+
+Typically for a factory, you would define your factory interface in a shared location in your codebase but implement it in your 
+entry project where you have the _IoC_ reference:
+
+```
+var factory = new Factory();
+factory.Add<IAccountService, AccountService>("Main");
+factory.Add<IAccountService, OtherAccountService>("Other");
+factory.Add<IAccountServiceFactory, AccountServiceFactory>();
+
+var serviceFactory = factory.Get<IAccountServiceFactory>();
+var service = serviceFactory.Create("Other");
+```
+
+Where the _IAccountServiceFactory_ implementation looks like:
+
+```
+public class AccountServiceFactory : IAccountServiceFactory
+{
+    private readonly IFactoryResolver _resolver;
+
+    public AccountServiceFactory(IFactoryResolver resolver)
+    {
+        _resolver = resolver;
+    }
+
+    public IAccountService Create(string key)
+    {
+        return _resolver.Get<IAccountService>(key);
+    }
+}
+```
+
+## The Config Logger
+
+On the _Factory_ class there is a method define called **Log**. Calling this will write out all the _IoC_ configuration to either a 
+supplied _IConfigLogger_ implementation, or, by default, to the debug window:
+
+```
+var factory = new Factory();
+factory.Add<IAccountService, AccountService>();
+factory.Log();
+```
+
+The output will look something like:
+
+```
+Logging the registration...
+
+Registered type: 'HyperIoC.IFactoryResolver' contains...
+Type: 'HyperIoC.Factory' with key 'HyperIoC.Factory' as 'HyperIoC.Lifetime.SingletonLifetimeManager' lifetime
+Registered type: 'HyperIoC.IFactoryResolver' complete.
+
+Registered type: 'HyperIoCDemo.IAccountService' contains...
+Type: 'HyperIoCDemo.AccountService' with key 'HyperIoCDemo.AccountService' as 'HyperIoC.Lifetime.TransientLifetimeManager' lifetime
+Registered type: 'HyperIoCDemo.IAccountService' complete.
+
+Registration log complete.
+```
+
+As you can see from the above window, the _IFactoryResolver_ is registered first and then each configured component. 
+It will details the key (or default key), the full type name and the lifetime strategy being used.
+
+You can provide your own logger by implementing the _IConfigLogger_ to write out the messages:
+
+```
+public class TestConfigLogger : IConfigLogger
+{
+    public void Log(string message)
+    {
+        // Log the message...
+    }
+}
+
+var factory = new Factory();
+factory.Add<IAccountService, AccountService>();
+factory.Log(new TestConfigLogger());
+
+```
+
+### Links
+
+* **GitFlow** https://datasift.github.io/gitflow/IntroducingGitFlow.html

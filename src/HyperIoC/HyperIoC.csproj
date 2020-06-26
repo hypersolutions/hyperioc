@@ -10,7 +10,7 @@
         <PackageProjectUrl>https://github.com/hypersolutions/hyperioc</PackageProjectUrl>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <Description>Hyperbolic Solutions simple IoC framework</Description>
-        <Copyright>Hyperbolic Solutions 2019</Copyright>
+        <Copyright>Hyperbolic Solutions 2020</Copyright>
         <PackageTags>IoC Dependency injection</PackageTags>
         <RepositoryUrl>https://github.com/hypersolutions/hyperioc</RepositoryUrl>
         <RepositoryType>github</RepositoryType>
