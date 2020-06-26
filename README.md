@@ -8,8 +8,12 @@ You can find this packages via NuGet:
 
 ## Overview
 
-TODO
-  
+This package was originally created when Windows 8 first came out and IoC frameworks were not available. It was designed to be simple to use and cover the common cases 
+such as transient and singleton registration. It also provided a clean, simple API to work with.
+
+The availability of options such as the Dependency Injection API which is part of the .NET Standard, now render this redundant, but it is being maintained for historical 
+and learning purposes.  
+
 ## The Factory Class
 
 The hub of the framework is the _Factory_ class. This contains the registration and resolution API. You need to keep an instance of the _Factory_ alive for the lifetime of your application or application domain. 
@@ -202,6 +206,35 @@ factory.Log(new TestConfigLogger());
 
 ```
 
-### Links
+## Developer Notes
+
+### Building and Publishing
+
+From the root, to build, run:
+
+```bash
+dotnet build --configuration Release 
+```
+
+To run all the unit tests, run:
+
+```bash
+dotnet test --no-build --configuration Release
+```
+
+To create a package for the tool, run:
+ 
+```bash
+cd src/HyperIoC
+dotnet pack --no-build --configuration Release 
+```
+
+To publish the package to the nuget feed on nuget.org:
+
+```bash
+dotnet nuget push ./bin/Release/HyperIoC.3.0.0.nupkg -k [THE API KEY] -s https://api.nuget.org/v3/index.json
+```
+
+## Links
 
 * **GitFlow** https://datasift.github.io/gitflow/IntroducingGitFlow.html
